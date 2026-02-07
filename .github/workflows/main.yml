@@ -1,11 +1,30 @@
-name: Deploy
+name: Deploy Website
 on:
   push:
-    branches: [ main ]
+    branches: [ main ] # Срабатывает, когда ты сохраняешь код
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Run deploy script
-        run: echo "Тут будет команда деплоя на твой сервер!"
+      - name: Checkout code
+        uses: actions/checkout@v4 # Берем твой код из GitHub
+
+      - name: Deploy to Server via SSH
+        uses: appleboy/ssh-action@v1.0.3 # Этот экшен заходит на сервер по SSH
+        with:
+          host: ${{ secrets.SSH_HOST }}      # IP сервера из секретов
+          username: ${{ secrets.SSH_USER }}  # root или твой юзер
+          key: ${{ secrets.SSH_PRIVATE_KEY }} # Тот самый ключ, что ты вставил
+          script: |
+            # Команды, которые выполнятся ТАМ, на сервере:
+            sudo apt-get update && sudo apt-get install -y docker.io # Устанавливаем Docker, если его нет
+            sudo docker stop my-website || true                      # Останавливаем старую версию
+            sudo docker rm my-website || true                        # Удаляем старую версию
+            
+            # Собираем образ прямо на сервере (самый простой путь для начала)
+            cd /home/${{ secrets.SSH_USER }}/project || mkdir -p /home/${{ secrets.SSH_USER }}/project
+            echo "${{ github.sha }}" > /home/${{ secrets.SSH_USER }}/project/version.txt
+            
+            # Для простоты пока просто запустим Nginx с твоим файлом
+            sudo docker run -d --name my-website -p 80:80 -v $(pwd)/index.html:/usr/share/nginx/html/index.html:ro nginx:alpine
