@@ -16,17 +16,22 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-         script: |
+          script: |
+            # 1. Заходим в папку проекта
             mkdir -p ~/my_app
             cd ~/my_app
+
+            # 2. Обновляем файлы
             echo "<h1>DevOps Success!</h1><p>Deploy date: $(date)</p>" > index.html
             echo "FROM nginx:alpine
             COPY index.html /usr/share/nginx/html/index.html" > Dockerfile
-            
+
+            # 3. Собираем свежий образ
             sudo docker build -t my-site-image .
-            
-            # Останавливаем и УДАЛЯЕМ старый контейнер, чтобы освободить порт
+
+            # 4. ВНИМАНИЕ: Очистка порта! 
+            # Удаляем старый контейнер, если он есть, чтобы освободить 80 порт
             sudo docker rm -f my-website || true
-            
-            # Запускаем новый
-            sudo docker run -d --name my-website -p 8080:80 my-site-image
+
+            # 5. Запускаем новый контейнер
+            sudo docker run -d --name my-website -p 80:80 my-site-image
