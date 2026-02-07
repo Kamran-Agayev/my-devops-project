@@ -32,4 +32,4 @@ jobs:
             sudo docker build -t my-site-image .
             sudo docker stop my-website || true
             sudo docker rm my-website || true
-            sudo docker run -d --name my-website -p 80:80 my-site-image
+            sudo docker run -d --name my-website -p 8080:80 my-site-image
