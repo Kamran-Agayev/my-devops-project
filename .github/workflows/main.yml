@@ -17,23 +17,12 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
 script: |
-            # 1. Убиваем ЛЮБОЙ процесс, который занял 80 порт (Nginx, Apache и т.д.)
-            # Это решит проблему "address already in use" и "permission denied"
-            sudo fuser -k 80/tcp || true
-            sudo systemctl stop nginx || true
-            
-            # 2. Чистим место для нового приложения
             mkdir -p ~/final_app
             cd ~/final_app
-
-            # 3. Создаем файлы заново
-            echo "<html><body style='background:#111;color:#0f0;text-align:center;padding-top:100px;font-family:sans-serif;'><h1>[ DEPLOY STATUS: SUCCESS ]</h1><p>Kamran, you finally beat this server!</p></body></html>" > index.html
-            
+            echo "<h1>KAMRAN DEPLOY SUCCESS!</h1>" > index.html
             echo "FROM nginx:alpine
-            COPY index.html /usr/share/nginx/html/index.html
-            RUN chmod 644 /usr/share/nginx/html/index.html" > Dockerfile
-
-            # 4. Собираем и запускаем
-            sudo docker build -t final-image .
-            sudo docker rm -f final-website || true
-            sudo docker run -d --name final-website -p 80:80 --restart always final-image
+            COPY index.html /usr/share/nginx/html/index.html" > Dockerfile
+            
+            sudo docker build -t final-site .
+            sudo docker rm -f my-website || true
+            sudo docker run -d --name my-website -p 80:80 final-site
