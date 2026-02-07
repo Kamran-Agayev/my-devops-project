@@ -16,12 +16,28 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-      script: |
-            # ... твои предыдущие команды (cd, echo, build) ...
-            
-            # Добавь это перед запуском контейнера:
+     script: |
+            # 1. Готовим чистую папку с полными правами
+            sudo mkdir -p /home/${{ secrets.SSH_USER }}/my_app
+            sudo chown -R ${{ secrets.SSH_USER }}:${{ secrets.SSH_USER }} /home/${{ secrets.SSH_USER }}/my_app
+            cd /home/${{ secrets.SSH_USER }}/my_app
+
+            # 2. Создаем файлы заново (чтобы исключить ошибки прав)
+            echo "<html><body><h1>DevOps Mastery: Success!</h1><p>Server Time: $(date)</p></body></html>" > index.html
+            echo "FROM nginx:alpine
+            COPY index.html /usr/share/nginx/html/index.html
+            RUN chmod 644 /usr/share/nginx/html/index.html" > Dockerfile
+
+            # 3. Собираем образ
+            sudo docker build -t my-site-image:latest .
+
+            # 4. УБИВАЕМ КОНКУРЕНТОВ (освобождаем порт 80 полностью)
+            # Останавливаем системный nginx, если он мешает
             sudo systemctl stop nginx || true
-            sudo docker rm -f my-website || true
+            sudo systemctl disable nginx || true
+            # Убиваем любой процесс, который держит 80 порт
+            sudo fuser -k 80/tcp || true
             
-            # Запуск
-            sudo docker run -d --name my-website -p 80:80 my-site-image
+            # 5. Перезапуск контейнера
+            sudo docker rm -f my-website || true
+            sudo docker run -d --name my-website -p 80:80 --restart always my-site-image:latest
