@@ -41,4 +41,4 @@ jobs:
             
             # 5. Перезапуск контейнера
             sudo docker rm -f my-website || true
-            sudo docker run -d --name my-website -p 80:80 --restart always my-site-image
+            sudo docker run -d --name my-website -p 8080:80 --restart always my-site-image
