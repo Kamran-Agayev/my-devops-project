@@ -1,35 +1,15 @@
-name: Deploy Website
-on:
-  push:
-    branches: [ main ]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          script: |
-            # 1. Создаем рабочую папку
+script: |
             mkdir -p ~/my_app
             cd ~/my_app
-
-            # 2. Создаем index.html (прямо на сервере, чтобы не было ошибок путей)
             echo "<h1>DevOps Success!</h1><p>Deploy date: $(date)</p>" > index.html
-
-            # 3. Создаем Dockerfile
             echo "FROM nginx:alpine
             COPY index.html /usr/share/nginx/html/index.html" > Dockerfile
-
-            # 4. Собираем образ и запускаем
+            
             sudo docker build -t my-site-image .
+            
+            # Очистка портов и старых контейнеров
             sudo docker stop my-website || true
-            sudo docker rm my-website || true
-            sudo docker run -d --name my-website -p 8080:80 my-site-image
+            sudo docker rm -f my-website || true
+            
+            # Запуск (форсируем очистку порта перед стартом)
+            sudo docker run -d --name my-website -p 80:80 my-site-image
