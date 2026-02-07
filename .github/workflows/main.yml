@@ -1,22 +1,35 @@
-script: |
-            # 1. Устанавливаем Docker, если его вдруг нет
-            sudo apt-get update && sudo apt-get install -y docker.io
-            
-            # 2. Переходим в папку проекта (создаем, если нет)
-            mkdir -p ~/my-project
-            cd ~/my-project
-            
-            # 3. GitHub Actions не копирует файлы сам на сервер в этом экшене, 
-            # поэтому мы просто создадим index.html и Dockerfile прямо сейчас одной командой
-            echo "<h1>DevOps Power!</h1><p>Deploy date: $(date)</p>" > index.html
-            
+name: Deploy Website
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # 1. Создаем рабочую папку
+            mkdir -p ~/my_app
+            cd ~/my_app
+
+            # 2. Создаем index.html (прямо на сервере, чтобы не было ошибок путей)
+            echo "<h1>DevOps Success!</h1><p>Deploy date: $(date)</p>" > index.html
+
+            # 3. Создаем Dockerfile
             echo "FROM nginx:alpine
             COPY index.html /usr/share/nginx/html/index.html" > Dockerfile
-            
-            # 4. Собираем образ (Build)
-            sudo docker build -t my-site:latest .
-            
-            # 5. Перезапускаем контейнер (Deploy)
+
+            # 4. Собираем образ и запускаем
+            sudo docker build -t my-site-image .
             sudo docker stop my-website || true
             sudo docker rm my-website || true
-            sudo docker run -d --name my-website -p 80:80 my-site:latest
+            sudo docker run -d --name my-website -p 80:80 my-site-image
