@@ -1,30 +1,22 @@
-name: Deploy Website
-on:
-  push:
-    branches: [ main ] # Срабатывает, когда ты сохраняешь код
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4 # Берем твой код из GitHub
-
-      - name: Deploy to Server via SSH
-        uses: appleboy/ssh-action@v1.0.3 # Этот экшен заходит на сервер по SSH
-        with:
-          host: ${{ secrets.SSH_HOST }}      # IP сервера из секретов
-          username: ${{ secrets.SSH_USER }}  # root или твой юзер
-          key: ${{ secrets.SSH_PRIVATE_KEY }} # Тот самый ключ, что ты вставил
-          script: |
-            # Команды, которые выполнятся ТАМ, на сервере:
-            sudo apt-get update && sudo apt-get install -y docker.io # Устанавливаем Docker, если его нет
-            sudo docker stop my-website || true                      # Останавливаем старую версию
-            sudo docker rm my-website || true                        # Удаляем старую версию
+script: |
+            # 1. Устанавливаем Docker, если его вдруг нет
+            sudo apt-get update && sudo apt-get install -y docker.io
             
-            # Собираем образ прямо на сервере (самый простой путь для начала)
-            cd /home/${{ secrets.SSH_USER }}/project || mkdir -p /home/${{ secrets.SSH_USER }}/project
-            echo "${{ github.sha }}" > /home/${{ secrets.SSH_USER }}/project/version.txt
+            # 2. Переходим в папку проекта (создаем, если нет)
+            mkdir -p ~/my-project
+            cd ~/my-project
             
-            # Для простоты пока просто запустим Nginx с твоим файлом
-            sudo docker run -d --name my-website -p 80:80 -v $(pwd)/index.html:/usr/share/nginx/html/index.html:ro nginx:alpine
+            # 3. GitHub Actions не копирует файлы сам на сервер в этом экшене, 
+            # поэтому мы просто создадим index.html и Dockerfile прямо сейчас одной командой
+            echo "<h1>DevOps Power!</h1><p>Deploy date: $(date)</p>" > index.html
+            
+            echo "FROM nginx:alpine
+            COPY index.html /usr/share/nginx/html/index.html" > Dockerfile
+            
+            # 4. Собираем образ (Build)
+            sudo docker build -t my-site:latest .
+            
+            # 5. Перезапускаем контейнер (Deploy)
+            sudo docker stop my-website || true
+            sudo docker rm my-website || true
+            sudo docker run -d --name my-website -p 80:80 my-site:latest
