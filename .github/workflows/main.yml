@@ -16,13 +16,22 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-script: |
+          script: |
+            # 1. Готовим чистую папку
             mkdir -p ~/final_app
             cd ~/final_app
-            echo "<h1>KAMRAN DEPLOY SUCCESS!</h1>" > index.html
+
+            # 2. Создаем файлы
+            echo "<h1>KAMRAN DEPLOY SUCCESS ON PORT 9000!</h1>" > index.html
             echo "FROM nginx:alpine
             COPY index.html /usr/share/nginx/html/index.html" > Dockerfile
             
+            # 3. Собираем образ (называем его final-site)
             sudo docker build -t final-site .
+
+            # 4. Убиваем старый контейнер и освобождаем порт 9000
             sudo docker rm -f my-website || true
-            sudo docker run -d --name my-website -p 80:80 final-site
+            sudo fuser -k 9000/tcp || true
+            
+            # 5. Запускаем (используем тот же образ final-site!)
+            sudo docker run -d --name my-website -p 9000:80 final-site
