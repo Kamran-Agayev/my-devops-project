@@ -16,28 +16,12 @@ jobs:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-            # 1. Заходим в папку
-            mkdir -p ~/my_app
-            cd ~/my_app
-
-            # 2. Обновляем файлы
-            echo "<h1>DevOps Success! CI/CD is Alive!</h1><p>Last Update: $(date)</p>" > index.html
-            echo "FROM nginx:alpine
-            COPY index.html /usr/share/nginx/html/index.html" > Dockerfile
-
-            # 3. Собираем образ
-            sudo docker build -t my-site-image .
-
-            # 4. ЖЕСТКАЯ ОЧИСТКА ПОРТА 80
-            # Останавливаем обычный nginx, если он запущен в системе
-            sudo systemctl stop nginx || true
-            sudo systemctl disable nginx || true
-            # Убиваем любой процесс на 80 порту (на всякий случай)
-            sudo fuser -k 80/tcp || true
+      script: |
+            # ... твои предыдущие команды (cd, echo, build) ...
             
-            # 5. Удаляем старый контейнер
+            # Добавь это перед запуском контейнера:
+            sudo systemctl stop nginx || true
             sudo docker rm -f my-website || true
-
-            # 6. Запускаем новый контейнер
+            
+            # Запуск
             sudo docker run -d --name my-website -p 80:80 my-site-image
